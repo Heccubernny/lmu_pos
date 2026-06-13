@@ -24,5 +24,31 @@ class Requisition extends Model
         'manager_approved',
         'status',
         'branch',
+        'product_id',
+        'store_id',
     ];
+
+    /**
+     * Relationship to Product.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'item_id');
+    }
+
+    /**
+     * Relationship to Store.
+     */
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id', 'id');
+    }
+
+    /**
+     * Relationship to cashier/requesting staff.
+     */
+    public function cashier()
+    {
+        return $this->belongsTo(User::class, 'staff_id', 'staff_id');
+    }
 }

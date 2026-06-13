@@ -273,7 +273,11 @@
                     /* Hide headers, sidebars, other page wrappers entirely from layout */
                     aside,
                     header,
-                    .print\:hidden {
+                    .print\:hidden,
+                    #flash-success,
+                    [aria-live="polite"],
+                    .swal2-container,
+                    .swal2-popup {
                         display: none !important;
                     }
 
@@ -371,6 +375,13 @@
                             setTimeout(function() {
                                 window.print();
                             }, 500);
+                        @endif
+
+                        // Once print is triggered and dialog is closed, redirect to POS page
+                        @if(session('autoprint') && auth()->user()->isSalesRep())
+                            window.addEventListener('afterprint', function() {
+                                window.location.href = "{{ route('cashier.sales.create') }}";
+                            });
                         @endif
                     });
                 </script>

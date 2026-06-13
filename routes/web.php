@@ -16,6 +16,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RegisterAdminController;
+use App\Http\Controllers\DepartmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +111,11 @@ Route::middleware(['auth', 'restrict.operator'])->prefix('supervisor/dashboard')
     Route::get('stock/allocate', [\App\Http\Controllers\StockController::class, 'allocateForm'])->name('supervisor.stock.allocate.form');
     Route::post('stock/allocate', [\App\Http\Controllers\StockController::class, 'allocate'])->name('supervisor.stock.allocate');
 
+    // Requisitions for Supervisors
+    Route::get('requisitions', [\App\Http\Controllers\RequisitionController::class, 'index'])->name('supervisor.requisitions.index');
+    Route::get('requisitions/create', [\App\Http\Controllers\RequisitionController::class, 'create'])->name('supervisor.requisitions.create');
+    Route::post('requisitions', [\App\Http\Controllers\RequisitionController::class, 'store'])->name('supervisor.requisitions.store');
+
     // Damaged/Expired
     Route::resource('damaged-expired', \App\Http\Controllers\DamagedExpiredController::class)
         ->only(['index', 'create', 'store'])
@@ -171,7 +177,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin/dashboard')->group(function 
     Route::resource('categories', CategoryController::class)->names('admin.categories');
     Route::resource('suppliers', SupplierController::class)->names('admin.suppliers');
     Route::resource('products', ProductController::class)->names('admin.products');
+    Route::post('products/{product}/assign', [ProductController::class, 'assignStore'])->name('admin.products.assign');
     Route::resource('users', UserController::class)->names('admin.users');
+    Route::resource('departments', DepartmentController::class)->names('admin.departments');
     Route::resource('customers', CustomerController::class)->names('admin.customers');
     Route::get('customers/{customer}/wallet', [CustomerController::class, 'wallet'])->name('admin.customers.wallet');
     Route::resource('returns', ReturnInController::class)->names('admin.returns');
@@ -179,6 +187,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin/dashboard')->group(function 
     Route::resource('damaged-expired', \App\Http\Controllers\DamagedExpiredController::class)->only(['index'])->names('admin.damaged-expired');
     Route::resource('requisitions', RequisitionController::class)->names('admin.requisitions');
     Route::post('requisitions/{requisition}/approve', [RequisitionController::class, 'approve'])->name('admin.requisitions.approve');
+    Route::post('requisitions/{requisition}/decline', [RequisitionController::class, 'decline'])->name('admin.requisitions.decline');
 
     Route::get('sales', [SaleController::class, 'index'])->name('admin.sales.index');
     Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('admin.sales.destroy');
@@ -220,6 +229,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin/dashboard')->group(function 
     Route::get('stores/{store}/edit', [AdminController::class, 'editStore'])->name('admin.stores.edit');
     Route::put('stores/{store}', [AdminController::class, 'updateStore'])->name('admin.stores.update');
     Route::delete('stores/{store}', [AdminController::class, 'destroyStore'])->name('admin.stores.destroy');
+
+    // Moniepoint POS transaction logs for Admin
+    Route::get('moniepoint-transactions', [\App\Http\Controllers\MoniepointController::class, 'adminIndex'])->name('admin.moniepoint.index');
 });
 
 

@@ -123,7 +123,7 @@
             </div>
         </div>
         <!-- Global flash/toast area -->
-        <div aria-live="polite" class="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 z-50">
+        <div aria-live="polite" class="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 z-50 print:hidden">
             <div class="w-full flex flex-col items-center space-y-4 sm:items-end">
                 @if(session('success'))
                     <div id="flash-success" class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden">

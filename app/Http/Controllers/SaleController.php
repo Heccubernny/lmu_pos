@@ -370,13 +370,19 @@ class SaleController extends Controller
                     'merchant_reference' => $validated['merchant_reference'] ?? null,
                     'processing_status' => $validated['processing_status'] ?? null,
                     'raw_response' => $validated['raw_response'] ?? null,
-                    'date' => now()->format('Y-m-d H:i:s'),
                 ]
             ]);
 
+            // Link Moniepoint transaction if reference is provided
+            if (!empty($validated['payment_reference'])) {
+                \App\Models\MoniepointTransaction::where('reference', $validated['payment_reference'])
+                    ->update([
+                        'recipt_number' => $receiptNumber
+                    ]);
+            }
+
             DB::commit();
 
-            // Retrieve the newly created transaction record to pass to redirect
             $newSale = \App\Models\Sale::where('recipt_number', $receiptNumber)->first();
 
             \App\Models\ActivityLog::log(
@@ -384,8 +390,11 @@ class SaleController extends Controller
                 'Completed sale ' . $receiptNumber . ' in store ' . $storeName . ' for ₦' . number_format($total_amount, 2)
             );
 
+
             if ($user->isSalesRep()) {
-                return redirect()->route('cashier.sales.show', $newSale)->with('success', 'Sale completed successfully!');
+                return redirect()->route('cashier.sales.show', $newSale)
+                    ->with('success', 'Sale completed successfully!')
+                    ->with('autoprint', true);
             }
             return redirect()->route('admin.sales.show', $newSale)->with('success', 'Sale completed successfully!');
 

@@ -154,6 +154,33 @@
                     </div>
                 </div>
 
+                <!-- Charts Grid -->
+                @if($sales->isNotEmpty())
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mt-6">
+                        <!-- Sales by Payment Mode -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Sales Volume by Payment Mode
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="paymentModeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Sales by Store Branch -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Revenue by Store Branch (₦)
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="storeSalesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -204,3 +231,129 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rawSales = @json($sales);
+        
+        if (rawSales && rawSales.length > 0) {
+            // Group by Payment Mode
+            const modeGroups = {};
+            // Group by Store Name
+            const storeGroups = {};
+
+            rawSales.forEach(sale => {
+                const mode = sale.mode_payment || 'Unknown';
+                const amount = parseFloat(sale.total_amount) || 0;
+                
+                // Fetch store name
+                let storeName = 'Main Store';
+                if (sale.store && sale.store.name) {
+                    storeName = sale.store.name;
+                } else if (sale.store_id) {
+                    storeName = 'Store #' + sale.store_id;
+                }
+
+                modeGroups[mode] = (modeGroups[mode] || 0) + amount;
+                storeGroups[storeName] = (storeGroups[storeName] || 0) + amount;
+            });
+
+            // 1. Payment Mode Share Chart (Pie)
+            const ctxMode = document.getElementById('paymentModeChart').getContext('2d');
+            new Chart(ctxMode, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(modeGroups),
+                    datasets: [{
+                        data: Object.values(modeGroups),
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',  // Emerald for Cash
+                            'rgba(99, 102, 241, 0.8)',  // Indigo for Card
+                            'rgba(245, 158, 11, 0.8)',  // Amber for Transfer
+                            'rgba(156, 163, 175, 0.8)'  // Grey for Other
+                        ],
+                        borderColor: [
+                            'rgb(16, 185, 129)',
+                            'rgb(99, 102, 241)',
+                            'rgb(245, 158, 11)',
+                            'rgb(156, 163, 175)'
+                        ],
+                        borderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 11, weight: '500' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ₦' + new Intl.NumberFormat().format(context.raw);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Revenue by Store Chart (Bar)
+            const ctxStore = document.getElementById('storeSalesChart').getContext('2d');
+            new Chart(ctxStore, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(storeGroups),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: Object.values(storeGroups),
+                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '₦' + new Intl.NumberFormat().format(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    return '₦' + new Intl.NumberFormat().format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush

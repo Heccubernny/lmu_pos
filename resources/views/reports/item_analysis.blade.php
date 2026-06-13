@@ -143,6 +143,33 @@
                     });
                 </script>
 
+                <!-- Charts Grid -->
+                @if($itemAnalysis->isNotEmpty())
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mt-6">
+                        <!-- Top Products by Revenue -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Top Products by Revenue (₦)
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="productRevenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Top Products by Volume -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Top Products by Volume (Quantity Sold)
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="productVolumeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -173,3 +200,103 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse database results
+        const rawItems = @json($itemAnalysis);
+        
+        if (rawItems && rawItems.length > 0) {
+            // Map records
+            const items = rawItems.map(item => ({
+                name: item.product ? item.product.name : ('Item #' + item.item_id),
+                revenue: parseFloat(item.total_amount),
+                qty: parseInt(item.total_qty)
+            }));
+
+            // Sort by revenue for revenue chart (take top 7)
+            const topRevenue = [...items].sort((a, b) => b.revenue - a.revenue).slice(0, 7);
+            // Sort by qty for volume chart (take top 7)
+            const topVolume = [...items].sort((a, b) => b.qty - a.qty).slice(0, 7);
+
+            // 1. Revenue Horizontal Bar Chart
+            const ctxRev = document.getElementById('productRevenueChart').getContext('2d');
+            new Chart(ctxRev, {
+                type: 'bar',
+                data: {
+                    labels: topRevenue.map(item => item.name),
+                    datasets: [{
+                        label: 'Revenue (₦)',
+                        data: topRevenue.map(item => item.revenue),
+                        backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '₦' + new Intl.NumberFormat().format(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { size: 9 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { font: { size: 9, weight: '500' } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Volume Vertical Bar Chart
+            const ctxVol = document.getElementById('productVolumeChart').getContext('2d');
+            new Chart(ctxVol, {
+                type: 'bar',
+                data: {
+                    labels: topVolume.map(item => item.name),
+                    datasets: [{
+                        label: 'Quantity Sold',
+                        data: topVolume.map(item => item.qty),
+                        backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { size: 9 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 9, weight: '500' } }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush

@@ -3,6 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Product;
+use App\Models\Store;
+use App\Models\HallStock;
+use App\Models\StockAllocation;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -24,10 +30,86 @@ class ProductController extends Controller
                 ->latest('pos_items.created_at')
                 ->paginate(10);
         } else {
-            $products = \App\Models\Product::with('category')->latest()->paginate(10);
+            $products = Product::with('category')->latest()->paginate(10);
         }
 
-        return view('products.index', compact('products'));
+        $stores = Store::where('status', 'active')->orderBy('name')->get();
+
+        return view('products.index', compact('products', 'stores'));
+    }
+
+    /**
+     * Assign a specific quantity of a global product to a store's hall stock.
+     */
+    public function assignStore(Request $request, Product $product)
+    {
+        if (strtolower(auth()->user()->role ?? '') === 'supervisor') {
+            abort(403, 'Supervisors cannot directly assign global inventory to stores.');
+        }
+
+        $validated = $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'quantity'  => 'required|numeric|min:0.01',
+        ]);
+
+        $store = Store::findOrFail($validated['store_id']);
+        $qty   = (float) $validated['quantity'];
+
+        // Ensure there is enough global warehouse stock
+        if ($product->quantity < $qty) {
+            return back()->with('error', "Cannot assign {$qty} units of \"{$product->name}\" — only {$product->quantity} units available in global inventory.");
+        }
+
+        DB::beginTransaction();
+        try {
+            // Decrement global inventory
+            $product->decrement('quantity', $qty);
+
+            // Increment (or create) the store's hall stock record
+            $hallStock = HallStock::firstOrCreate(
+                ['store_id' => $store->id, 'product_id' => $product->item_id],
+                ['quantity' => 0]
+            );
+            $hallStock->increment('quantity', $qty);
+
+            // Log the allocation
+            StockAllocation::create([
+                'supervisor_id' => auth()->user()->person_id,
+                'store_id'      => $store->id,
+                'product_id'    => $product->item_id,
+                'quantity'      => $qty,
+            ]);
+
+            // Create approved requisition record to log movement
+            \App\Models\Requisition::create([
+                'product_id'       => $product->item_id,
+                'store_id'         => $store->id,
+                'name'             => $product->name,
+                'category'         => $product->category->name ?? $product->category ?? 'General',
+                'quantity'         => $qty,
+                'collectedby'      => auth()->user()->name ?? 'Admin Direct Allocation',
+                'department'       => 'Store Stock Allocation',
+                'ty'               => 'Store',
+                'staff_id'         => auth()->user()->staff_id ?? 'STF001',
+                'manager_approved' => 'approved',
+                'status'           => 'approved',
+                'branch'           => $store->name,
+            ]);
+
+            ActivityLog::log(
+                'admin_stock_assignment',
+                "Admin assigned {$qty} unit(s) of \"{$product->name}\" to store \"{$store->name}\"."
+            );
+
+            DB::commit();
+
+            return redirect()->route('admin.products.index')
+                ->with('success', "Successfully assigned {$qty} unit(s) of \"{$product->name}\" to {$store->name}.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Stock assignment failed: ' . $e->getMessage());
+        }
     }
 
     /**

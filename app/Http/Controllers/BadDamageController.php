@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BadDamage;
+use App\Models\Department;
 use App\Models\Product;
 use App\Models\StoreShelve;
 use Illuminate\Http\Request;
@@ -18,8 +19,9 @@ class BadDamageController extends Controller
 
     public function create()
     {
-        $products = Product::all(['name']);
-        return view('bad_damages.create', compact('products'));
+        $products    = Product::all(['name']);
+        $departments = Department::where('status', 'active')->orderBy('name')->get(['name']);
+        return view('bad_damages.create', compact('products', 'departments'));
     }
 
     public function store(Request $request)
@@ -42,14 +44,16 @@ class BadDamageController extends Controller
                 'date' => now(),
             ]);
 
-            // Logic from tconn: if from Cashier, update pos_items (Products)
-            // if from Logistics, update pos_store_shelve (StoreShelve)
-            if ($validated['from_dept'] === 'Cashier') {
+            // Inventory deduction: check department name (case-insensitive) to decide pool
+            $deptName = strtolower($validated['from_dept']);
+            if (str_contains($deptName, 'cashier') || str_contains($deptName, 'sales') || str_contains($deptName, 'pos')) {
+                // Deduct from main product stock (POS items)
                 $product = Product::where('name', $validated['name'])->first();
                 if ($product) {
                     $product->decrement('quantity', $validated['qty']);
                 }
-            } else if ($validated['from_dept'] === 'Logistics') {
+            } else {
+                // Deduct from store shelve / warehouse stock
                 $shelveItem = StoreShelve::where('name', $validated['name'])->first();
                 if ($shelveItem) {
                     $shelveItem->decrement('quantity', $validated['qty']);

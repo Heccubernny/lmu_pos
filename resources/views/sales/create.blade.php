@@ -240,6 +240,25 @@
                         </div>
                     </div>
 
+                    <!-- Transfer Bank Details -->
+                    <template x-if="document.querySelector('select[name=\'mode_payment\']')?.value === 'Transfer'">
+                        <div class="mb-4 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left text-sm space-y-2">
+                            <p class="text-xs font-bold text-indigo-800 uppercase tracking-wide text-center mb-1">bank transfer details</p>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-medium">Bank Name:</span>
+                                <span class="text-slate-800 font-bold">Moniepoint MFB</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-medium">Account Number:</span>
+                                <span class="text-slate-800 font-bold font-mono tracking-wider">9038283492</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-medium">Account Name:</span>
+                                <span class="text-slate-800 font-bold">T-Conn Store ({{ $store->name ?? 'POS' }})</span>
+                            </div>
+                        </div>
+                    </template>
+
                     <!-- Details Table -->
                     <div class="bg-slate-50 rounded-xl p-4 text-left text-sm space-y-2 mb-6 border border-slate-100">
                         <div class="flex justify-between">
@@ -254,9 +273,7 @@
                             <span>Amount Due:</span>
                             <span class="text-indigo-600" x-text="'₦' + total.toLocaleString('en-US', {minimumFractionDigits: 2})"></span>
                         </div>
-                    </div>
-
-                    <!-- Simulation Controls -->
+                    </div>                    <!-- Simulation Controls -->
                     <div class="flex flex-col gap-3" x-show="paymentSimulating">
                         <button type="button" @click="simulateSuccess()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition">
                             Simulate Card Swipe (Approved)
@@ -290,6 +307,9 @@
                         searchQuery: '',
                         cart: [],
                         discount: 0,
+                        storeId: {{ $store->id ?? 'null' }},
+                        cashierId: {{ auth()->user()->person_id ?? 'null' }},
+                        pollingInterval: null,
 
                         // Payment modal properties
                         showPaymentModal: false,
@@ -398,38 +418,139 @@
                                 this.paymentSimulating = true;
                                 this.paymentSuccess = false;
                                 this.paymentFailed = false;
-                                this.terminalStatus = 'Waiting for card swipe / payment authorization on terminal...';
+                                
+                                if (paymentMethod === 'Card') {
+                                    this.terminalStatus = 'Waiting for card swipe on terminal MP-TERM-492...';
+                                } else {
+                                    this.terminalStatus = 'Waiting for bank transfer to Account No: 9038283492...';
+                                }
+                                
+                                this.startPolling();
                             } else {
                                 // Direct cash submission
                                 form.submit();
                             }
                         },
 
-                        simulateSuccess() {
-                            const paymentRef = 'MP-TXN-' + Math.floor(Math.random() * 1000000000);
+                        startPolling() {
+                            if (this.pollingInterval) {
+                                clearInterval(this.pollingInterval);
+                            }
+                            this.pollingInterval = setInterval(() => {
+                                fetch(`/api/moniepoint/poll-active-payment?store_id=${this.storeId}&amount=${this.total}`)
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.status === 'success' && data.payments && data.payments.length > 0) {
+                                            const payment = data.payments[0];
+                                            this.handlePaymentSuccess(payment);
+                                        }
+                                    })
+                                    .catch(err => console.error('Polling error:', err));
+                            }, 2000);
+                        },
+
+                        handlePaymentSuccess(payment) {
+                            if (this.pollingInterval) {
+                                clearInterval(this.pollingInterval);
+                                this.pollingInterval = null;
+                            }
+
                             this.cashlessData = {
                                 merchant_reference: this.merchantRef,
-                                terminal_id: 'MP-TERM-492',
-                                payment_reference: paymentRef,
+                                terminal_id: payment.terminal_id || 'MP-TERM-492',
+                                payment_reference: payment.reference,
                                 processing_status: 'SUCCESS',
-                                raw_response: JSON.stringify({
-                                    status: 'approved',
-                                    card_brand: 'Visa',
-                                    terminal: 'MP-TERM-492',
-                                    merchant_ref: this.merchantRef
-                                })
+                                raw_response: JSON.stringify(payment)
                             };
 
                             this.paymentSimulating = false;
                             this.paymentSuccess = true;
-                            this.terminalStatus = 'Approved! Finalizing checkout...';
+                            this.terminalStatus = 'Approved! Payment of ₦' + parseFloat(payment.amount).toLocaleString() + ' received successfully via ' + payment.payment_method + '!';
+
+                            // Real-time audio notification using Web Audio API (sine waves)
+                            try {
+                                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                const osc = audioCtx.createOscillator();
+                                const gain = audioCtx.createGain();
+                                osc.connect(gain);
+                                gain.connect(audioCtx.destination);
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
+                                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3); // G5
+                                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                                osc.start();
+                                osc.stop(audioCtx.currentTime + 0.6);
+                            } catch (e) {
+                                console.log('Audio error:', e);
+                            }
+
+                            // Show real-time notification toast
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Payment of ₦' + parseFloat(payment.amount).toLocaleString() + ' received via ' + payment.payment_method + '!',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
 
                             setTimeout(() => {
                                 document.getElementById('checkout-form').submit();
-                            }, 1000);
+                            }, 1500);
+                        },
+
+                        simulateSuccess() {
+                            const paymentRef = 'MP-TXN-' + Math.floor(Math.random() * 1000000000);
+                            const paymentMethod = document.querySelector('select[name="mode_payment"]').value;
+                            
+                            const payload = {
+                                reference: paymentRef,
+                                amount: this.total,
+                                channel: paymentMethod, // Card or Transfer
+                                terminalId: 'MP-TERM-492',
+                                status: 'SUCCESS',
+                                customerName: 'Customer Test',
+                                bankName: paymentMethod === 'Transfer' ? 'Moniepoint Microfinance Bank' : null,
+                                accountNumber: paymentMethod === 'Transfer' ? '9038283492' : null,
+                                cardBrand: paymentMethod === 'Card' ? 'Visa' : null,
+                                cardLast4: paymentMethod === 'Card' ? '4321' : null,
+                                store_id: this.storeId,
+                                cashier_id: this.cashierId
+                            };
+
+                            this.terminalStatus = 'Sending mock webhook...';
+
+                            fetch('/api/moniepoint/webhook', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify(payload)
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    this.terminalStatus = 'Webhook delivered. Waiting for polling to detect...';
+                                } else {
+                                    this.terminalStatus = 'Webhook simulation failed.';
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Webhook simulation error:', err);
+                                this.terminalStatus = 'Webhook simulation error: ' + err.message;
+                            });
                         },
 
                         simulateFailure() {
+                            if (this.pollingInterval) {
+                                clearInterval(this.pollingInterval);
+                                this.pollingInterval = null;
+                            }
                             this.paymentSimulating = false;
                             this.paymentFailed = true;
                             this.terminalStatus = 'Transaction Declined (Insufficient Funds).';
@@ -438,10 +559,20 @@
                         retryPayment() {
                             this.paymentSimulating = true;
                             this.paymentFailed = false;
-                            this.terminalStatus = 'Waiting for card swipe / payment authorization on terminal...';
+                            const paymentMethod = document.querySelector('select[name="mode_payment"]').value;
+                            if (paymentMethod === 'Card') {
+                                this.terminalStatus = 'Waiting for card swipe on terminal MP-TERM-492...';
+                            } else {
+                                this.terminalStatus = 'Waiting for bank transfer to Account No: 9038283492...';
+                            }
+                            this.startPolling();
                         },
 
                         cancelPayment() {
+                            if (this.pollingInterval) {
+                                clearInterval(this.pollingInterval);
+                                this.pollingInterval = null;
+                            }
                             this.showPaymentModal = false;
                         }
                     }));

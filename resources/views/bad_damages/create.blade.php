@@ -32,9 +32,14 @@
                             <div>
                                 <label for="from_dept" class="block text-sm font-medium text-slate-700 mb-1">Department</label>
                                 <select name="from_dept" id="from_dept" class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-colors" required>
-                                    <option value="Cashier">Cashier</option>
-                                    <option value="Logistics">Logistics</option>
-                                    <option value="Production">Production</option>
+                                    <option value="">-- Select Department --</option>
+                                    @forelse($departments as $dept)
+                                        <option value="{{ $dept->name }}" {{ old('from_dept') == $dept->name ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @empty
+                                        <option value="" disabled>No departments found. Please add departments first.</option>
+                                    @endforelse
                                 </select>
                             </div>
 

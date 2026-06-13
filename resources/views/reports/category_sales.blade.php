@@ -143,6 +143,33 @@
                     });
                 </script>
 
+                <!-- Charts Grid -->
+                @if($categorySales->isNotEmpty())
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mt-6">
+                        <!-- Revenue Share Chart -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Revenue Share by Category
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="revenueShareChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Quantity Sold Chart -->
+                        <div class="bg-slate-50 p-5 border border-slate-200 rounded-2xl">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                                Total Quantity Sold by Category
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="quantitySoldChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -171,3 +198,116 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoryData = @json($categorySales);
+        
+        if (categoryData && categoryData.length > 0) {
+            const labels = categoryData.map(item => item.category);
+            const revenues = categoryData.map(item => parseFloat(item.total_amount));
+            const quantities = categoryData.map(item => parseInt(item.total_qty));
+
+            const colors = [
+                'rgba(99, 102, 241, 0.8)',  // Indigo
+                'rgba(16, 185, 129, 0.8)',  // Emerald
+                'rgba(245, 158, 11, 0.8)',  // Amber
+                'rgba(239, 68, 68, 0.8)',   // Rose
+                'rgba(6, 182, 212, 0.8)',   // Cyan
+                'rgba(139, 92, 246, 0.8)',  // Violet
+                'rgba(236, 72, 153, 0.8)'   // Pink
+            ];
+            
+            const borderColors = [
+                'rgb(99, 102, 241)',
+                'rgb(16, 185, 129)',
+                'rgb(245, 158, 11)',
+                'rgb(239, 68, 68)',
+                'rgb(6, 182, 212)',
+                'rgb(139, 92, 246)',
+                'rgb(236, 72, 153)'
+            ];
+
+            // 1. Revenue Share Chart (Doughnut)
+            const ctxRev = document.getElementById('revenueShareChart').getContext('2d');
+            new Chart(ctxRev, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: revenues,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: borderColors.slice(0, labels.length),
+                        borderWidth: 1.5,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 11, weight: '500' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) label += ': ';
+                                    if (context.raw !== null) {
+                                        label += '₦' + new Intl.NumberFormat().format(context.raw);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Quantity Sold Chart (Bar)
+            const ctxQty = document.getElementById('quantitySoldChart').getContext('2d');
+            new Chart(ctxQty, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantity Sold',
+                        data: quantities,
+                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush

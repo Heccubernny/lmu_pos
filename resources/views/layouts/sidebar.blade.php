@@ -54,6 +54,13 @@
                 <span>Allocate Hostel Stock</span>
             </a>
 
+            <a href="{{ route('supervisor.requisitions.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg {{ request()->routeIs('supervisor.requisitions.*') ? 'bg-indigo-600/10 text-indigo-400 font-medium border border-indigo-500/20 shadow-inner' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-colors group">
+                <svg class="w-5 h-5 {{ request()->routeIs('supervisor.requisitions.*') ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-300' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Store Requisitions</span>
+            </a>
+
             <a href="{{ route('supervisor.damaged-expired.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg {{ request()->routeIs('supervisor.damaged-expired.*') ? 'bg-indigo-600/10 text-indigo-400 font-medium border border-indigo-500/20 shadow-inner' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-colors group">
                 <svg class="w-5 h-5 {{ request()->routeIs('supervisor.damaged-expired.*') ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-300' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -170,6 +177,13 @@
                 <span>Recent Sales</span>
             </a>
 
+            <a href="{{ route('admin.moniepoint.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg {{ request()->routeIs('admin.moniepoint.*') ? 'bg-indigo-600/10 text-indigo-400 font-medium border border-indigo-500/20 shadow-inner' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-colors group">
+                <svg class="w-5 h-5 {{ request()->routeIs('admin.moniepoint.*') ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-300' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <span>Moniepoint Logs</span>
+            </a>
+
             <div class="h-4"></div>
             <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Catalog</p>
 
@@ -268,6 +282,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                     <span>Store Management</span>
+                </a>
+                <a href="{{ route('admin.departments.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg {{ request()->routeIs('admin.departments.*') ? 'bg-indigo-600/10 text-indigo-400 font-medium border border-indigo-500/20 shadow-inner' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-colors group">
+                    <svg class="w-5 h-5 {{ request()->routeIs('admin.departments.*') ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-300' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                    </svg>
+                    <span>Department Management</span>
                 </a>
             </div>
         @endif

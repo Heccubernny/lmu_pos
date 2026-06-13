@@ -17,3 +17,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Moniepoint POS Integration Routes
+Route::post('/moniepoint/webhook', [App\Http\Controllers\MoniepointController::class, 'handleWebhook']);
+Route::get('/moniepoint/check-transaction/{reference}', [App\Http\Controllers\MoniepointController::class, 'checkTransaction']);
+Route::get('/moniepoint/poll-active-payment', [App\Http\Controllers\MoniepointController::class, 'pollActivePayment']);
+
