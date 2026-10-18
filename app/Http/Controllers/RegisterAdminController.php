@@ -27,7 +27,7 @@ class RegisterAdminController extends Controller
     }
 
     /**
-     * Handle registration of the first administrator.
+     * Hmmandle registration of the first administrator.
      */
     public function register(Request $request)
     {
